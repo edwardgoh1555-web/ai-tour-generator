@@ -39,16 +39,19 @@
             <h1> AI Tour Generator</h1>
             <div class="card">
                 <h2>Where are you?</h2>
-                <p class="description">Tell us your location so we can create a tour for you</p>
+                <p class="description">Use your current location or enter a custom one below</p>
                 <form id="location-form">
                     <div class="form-group">
-                        <div class="input-with-button">
-                            <input type="text" id="location" placeholder="e.g., Paris, France" required>
-                            <button type="button" id="use-location-btn" class="btn btn-location" title="Use my location">
-                                
-                            </button>
-                        </div>
+                        <button type="button" id="use-location-btn" class="btn btn-location-full">
+                             Allow Location
+                        </button>
                         <div id="location-status" class="location-status"></div>
+                    </div>
+                    <div class="divider">
+                        <span>or enter manually</span>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="location" placeholder="e.g., Paris, France">
                     </div>
                     <button type="submit" class="btn btn-primary">Next </button>
                 </form>

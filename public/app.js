@@ -5,6 +5,8 @@ let tourData = {
     numberOfStops: 0
 };
 
+let detectedLocation = null;
+
 // Screen management
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
@@ -16,8 +18,8 @@ function showScreen(screenId) {
 // Geolocation functionality
 async function getUserLocation() {
     const locationBtn = document.getElementById('use-location-btn');
-    const locationInput = document.getElementById('location');
     const locationStatus = document.getElementById('location-status');
+    const locationInput = document.getElementById('location');
     
     // Check if geolocation is supported
     if (!navigator.geolocation) {
@@ -26,11 +28,18 @@ async function getUserLocation() {
         return;
     }
     
+    // If we already have a detected location, use it and proceed
+    if (detectedLocation) {
+        tourData.location = detectedLocation;
+        showScreen('interests-screen');
+        return;
+    }
+    
     // Show loading state
     locationBtn.disabled = true;
-    locationBtn.textContent = '';
-    locationStatus.textContent = 'Getting your location...';
-    locationStatus.className = 'location-status loading';
+    locationBtn.innerHTML = ' Getting location...';
+    locationBtn.classList.add('loading');
+    locationStatus.textContent = '';
     
     try {
         const position = await new Promise((resolve, reject) => {
@@ -44,7 +53,7 @@ async function getUserLocation() {
         const { latitude, longitude } = position.coords;
         
         // Reverse geocode using OpenStreetMap Nominatim (free, no API key)
-        locationStatus.textContent = 'Finding your address...';
+        locationBtn.innerHTML = ' Finding address...';
         
         const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
@@ -77,29 +86,37 @@ async function getUserLocation() {
             locationString = data.display_name;
         }
         
-        locationInput.value = locationString;
-        locationStatus.textContent = ' Location detected!';
+        // Store detected location and update button
+        detectedLocation = locationString;
+        locationBtn.innerHTML = ' ' + locationString;
+        locationBtn.classList.remove('loading');
+        locationBtn.classList.add('has-location');
+        locationBtn.disabled = false;
+        locationStatus.textContent = ' Click the button above to use this location';
         locationStatus.className = 'location-status success';
+        
+        // Clear manual input since we have auto location
+        locationInput.value = '';
         
     } catch (error) {
         console.error('Geolocation error:', error);
         let errorMessage = 'Could not get your location. ';
         
         if (error.code === 1) {
-            errorMessage += 'Please allow location access and try again.';
+            errorMessage = 'Location access denied. Please enter manually below.';
         } else if (error.code === 2) {
-            errorMessage += 'Location unavailable.';
+            errorMessage = 'Location unavailable. Please enter manually below.';
         } else if (error.code === 3) {
-            errorMessage += 'Request timed out.';
+            errorMessage = 'Location request timed out. Please enter manually below.';
         } else {
-            errorMessage += 'Please enter manually.';
+            errorMessage = 'Could not detect location. Please enter manually below.';
         }
         
         locationStatus.textContent = errorMessage;
         locationStatus.className = 'location-status error';
-    } finally {
+        locationBtn.innerHTML = ' Allow Location';
+        locationBtn.classList.remove('loading');
         locationBtn.disabled = false;
-        locationBtn.textContent = '';
     }
 }
 
@@ -139,8 +156,21 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 // Location form handling
 document.getElementById('location-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    tourData.location = document.getElementById('location').value;
-    showScreen('interests-screen');
+    
+    const manualLocation = document.getElementById('location').value.trim();
+    const locationStatus = document.getElementById('location-status');
+    
+    // Use manual location if provided, otherwise use detected location
+    if (manualLocation) {
+        tourData.location = manualLocation;
+        showScreen('interests-screen');
+    } else if (detectedLocation) {
+        tourData.location = detectedLocation;
+        showScreen('interests-screen');
+    } else {
+        locationStatus.textContent = 'Please detect your location or enter one manually';
+        locationStatus.className = 'location-status error';
+    }
 });
 
 // Interests form handling
@@ -207,6 +237,16 @@ document.getElementById('new-tour-btn').addEventListener('click', () => {
         interests: '',
         numberOfStops: 0
     };
+    
+    // Keep detected location for reuse, but reset UI
+    const locationBtn = document.getElementById('use-location-btn');
+    if (detectedLocation) {
+        locationBtn.innerHTML = ' ' + detectedLocation;
+        locationBtn.classList.add('has-location');
+    } else {
+        locationBtn.innerHTML = ' Allow Location';
+        locationBtn.classList.remove('has-location');
+    }
     
     // Clear form inputs
     document.getElementById('location').value = '';
