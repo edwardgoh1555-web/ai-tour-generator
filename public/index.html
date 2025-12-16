@@ -10,7 +10,7 @@
     <div class="container">
         <!-- Login Screen -->
         <div id="login-screen" class="screen active">
-            <h1>🗺️ AI Tour Generator</h1>
+            <h1> AI Tour Generator</h1>
             <p class="subtitle">Your personal AI-powered tour guide</p>
             
             <div class="card">
@@ -27,7 +27,7 @@
                     <button type="submit" class="btn btn-primary">Login</button>
                 </form>
                 <div class="credentials-hint">
-                    <p>📝 <strong>Test Credentials:</strong></p>
+                    <p> <strong>Test Credentials:</strong></p>
                     <p>Username: <code>demo</code> | Password: <code>tour123</code></p>
                 </div>
                 <div id="login-error" class="error-message"></div>
@@ -36,22 +36,28 @@
 
         <!-- Location Question -->
         <div id="location-screen" class="screen">
-            <h1>🗺️ AI Tour Generator</h1>
+            <h1> AI Tour Generator</h1>
             <div class="card">
                 <h2>Where are you?</h2>
                 <p class="description">Tell us your location so we can create a tour for you</p>
                 <form id="location-form">
                     <div class="form-group">
-                        <input type="text" id="location" placeholder="e.g., Paris, France" required>
+                        <div class="input-with-button">
+                            <input type="text" id="location" placeholder="e.g., Paris, France" required>
+                            <button type="button" id="use-location-btn" class="btn btn-location" title="Use my location">
+                                
+                            </button>
+                        </div>
+                        <div id="location-status" class="location-status"></div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Next →</button>
+                    <button type="submit" class="btn btn-primary">Next </button>
                 </form>
             </div>
         </div>
 
         <!-- Interests Question -->
         <div id="interests-screen" class="screen">
-            <h1>🗺️ AI Tour Generator</h1>
+            <h1> AI Tour Generator</h1>
             <div class="card">
                 <h2>What do you want to do?</h2>
                 <p class="description">Tell us about your interests and what you'd like to experience</p>
@@ -59,14 +65,14 @@
                     <div class="form-group">
                         <textarea id="interests" placeholder="e.g., I love history, local food, and hidden gems. I want to see art museums and try street food..." required></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary">Next →</button>
+                    <button type="submit" class="btn btn-primary">Next </button>
                 </form>
             </div>
         </div>
 
         <!-- Number of Stops Question -->
         <div id="stops-screen" class="screen">
-            <h1>🗺️ AI Tour Generator</h1>
+            <h1> AI Tour Generator</h1>
             <div class="card">
                 <h2>How many stops?</h2>
                 <p class="description">How many places would you like to visit on your tour?</p>
@@ -74,14 +80,14 @@
                     <div class="form-group">
                         <input type="number" id="stops" min="1" max="10" placeholder="e.g., 5" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Generate My Tour ✨</button>
+                    <button type="submit" class="btn btn-primary">Generate My Tour </button>
                 </form>
             </div>
         </div>
 
         <!-- Loading Screen -->
         <div id="loading-screen" class="screen">
-            <h1>🗺️ AI Tour Generator</h1>
+            <h1> AI Tour Generator</h1>
             <div class="card">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -93,11 +99,11 @@
 
         <!-- Results Screen -->
         <div id="results-screen" class="screen">
-            <h1>🗺️ Your Personalized Tour</h1>
+            <h1> Your Personalized Tour</h1>
             <div class="card results-card">
                 <div id="tour-summary" class="tour-summary"></div>
                 <div id="tour-content" class="tour-content"></div>
-                <button id="new-tour-btn" class="btn btn-primary">🔄 New Tour</button>
+                <button id="new-tour-btn" class="btn btn-primary"> New Tour</button>
             </div>
         </div>
     </div>

@@ -106,6 +106,61 @@ h1 {
     resize: vertical;
 }
 
+/* Input with button (location field) */
+.input-with-button {
+    display: flex;
+    gap: 10px;
+}
+
+.input-with-button input {
+    flex: 1;
+}
+
+.btn-location {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    font-size: 1.4rem;
+    background: #f0f0f0;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-location:hover {
+    background: #667eea;
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+.btn-location:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.location-status {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    min-height: 20px;
+}
+
+.location-status.loading {
+    color: #667eea;
+}
+
+.location-status.success {
+    color: #27ae60;
+}
+
+.location-status.error {
+    color: #e74c3c;
+}
+
 .btn {
     display: inline-block;
     padding: 15px 30px;
