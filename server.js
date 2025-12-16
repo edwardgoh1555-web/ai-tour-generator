@@ -5,7 +5,8 @@ const OpenAI = require('openai');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
+const HOST = '0.0.0.0';
 
 // Middleware
 app.use(cors());
@@ -22,6 +23,11 @@ const TEST_USER = {
     username: 'demo',
     password: 'tour123'
 };
+
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
 
 // Login endpoint
 app.post('/api/login', (req, res) => {
@@ -90,7 +96,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 AI Tour Generator running on http://localhost:${PORT}`);
-    console.log(`📝 Test credentials - Username: ${TEST_USER.username} | Password: ${TEST_USER.password}`);
+app.listen(PORT, HOST, () => {
+    console.log(`AI Tour Generator running on http://${HOST}:${PORT}`);
+    console.log(`Test credentials - Username: ${TEST_USER.username} | Password: ${TEST_USER.password}`);
 });
