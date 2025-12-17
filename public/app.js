@@ -303,47 +303,7 @@ function createStopTile(stop, index) {
     tile.className = 'tour-stop-tile';
     tile.dataset.index = index;
     
-    // Filter out any invalid image URLs and ensure we have valid images
-    const validImages = (stop.images || []).filter(img => img && img.trim() !== '');
-    
-    // Debug logging
-    console.log(`Stop ${index + 1} - ${stop.name}:`, {
-        totalImages: stop.images?.length || 0,
-        validImages: validImages.length,
-        images: validImages
-    });
-    
-    // Create image carousel HTML only if there are images
-    let carouselHTML = '';
-    if (validImages.length > 0) {
-        carouselHTML = `
-            <div class="image-carousel">
-                <div class="carousel-images">
-                    ${validImages.map((img, i) => `
-                        <img src="${img}" alt="${stop.name}" class="carousel-image ${i === 0 ? 'active' : ''}" loading="lazy" onerror="handleImageError(this)">
-                    `).join('')}
-                </div>
-                ${validImages.length > 1 ? `
-                    <button class="carousel-btn prev" aria-label="Previous image">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <button class="carousel-btn next" aria-label="Next image">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                    <div class="carousel-indicators">
-                        ${validImages.map((_, i) => `<span class="indicator ${i === 0 ? 'active' : ''}" data-index="${i}"></span>`).join('')}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
     tile.innerHTML = `
-        ${carouselHTML}
         <div class="tile-header">
             <div class="stop-number">Stop ${index + 1}</div>
             <button class="refresh-btn" title="Get a different stop" aria-label="Refresh this stop">
@@ -393,11 +353,6 @@ function createStopTile(stop, index) {
     // Add refresh button event listener
     const refreshBtn = tile.querySelector('.refresh-btn');
     refreshBtn.addEventListener('click', () => refreshStop(index));
-    
-    // Add carousel functionality if there are multiple images
-    if (stop.images && stop.images.length > 1) {
-        setupCarousel(tile);
-    }
     
     return tile;
 }

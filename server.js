@@ -97,7 +97,6 @@ For each stop, provide a JSON object with these exact fields:
 - address: The actual complete street address (verified via web search)
 - phone: Phone number if available from search
 - website: Website URL if available from search
-- images: Array of PUBLICLY ACCESSIBLE image URLs. IMPORTANT: Do NOT use TripAdvisor, Google Maps, or similar sites as these block direct linking. Instead, try the establishment's own website, Instagram posts, food blogs, news articles about the place, or search for "[place name] restaurant image" and find URLs ending in .jpg/.png/.webp that are directly accessible. If you cannot find publicly accessible images, use an empty array []. Quality over quantity - only include images that will actually load.
 
 Respond with a JSON object with a "stops" array containing ${numberOfStops} stops. Format:
 {
@@ -108,8 +107,7 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
       "duration": "1-2 hours",
       "address": "123 Real Street, City",
       "phone": "+1234567890",
-      "website": "https://example.com",
-      "images": ["url1", "url2", "url3"]
+      "website": "https://example.com"
     }
   ]
 }`;
@@ -143,12 +141,6 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
                 console.error('Tour stops is not an array:', tourStops);
                 throw new Error('Invalid tour stops format');
             }
-            
-            // Ensure each stop has an images array (even if empty)
-            tourStops = tourStops.map(stop => ({
-                ...stop,
-                images: stop.images || []
-            }));
             
         } catch (parseError) {
             console.error('Failed to parse tour stops:', parseError);
@@ -197,7 +189,6 @@ Provide a JSON object with these exact fields:
 - address: The actual complete street address (verified via web search)
 - phone: Phone number if available from search
 - website: Website URL if available from search
-- images: Array of PUBLICLY ACCESSIBLE image URLs. IMPORTANT: Do NOT use TripAdvisor, Google Maps, or similar sites as these block direct linking. Instead, try the establishment's own website, Instagram posts, food blogs, news articles, or search for "[place name] image" and find URLs ending in .jpg/.png/.webp that are directly accessible. If you cannot find publicly accessible images, use an empty array []. Quality over quantity - only include images that will actually load.
 
 Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, no extra text.`;
 
@@ -221,9 +212,6 @@ Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, n
         console.log('Refresh stop response:', responseContent);
         const cleanedContent = cleanJsonResponse(responseContent);
         const newStop = JSON.parse(cleanedContent);
-        
-        // Ensure images array exists
-        newStop.images = newStop.images || [];
         
         res.json({ success: true, stop: newStop });
         
