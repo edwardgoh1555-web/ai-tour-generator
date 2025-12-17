@@ -97,7 +97,7 @@ For each stop, provide a JSON object with these exact fields:
 - address: The actual complete street address (verified via web search)
 - phone: Phone number if available from search
 - website: Website URL if available from search
-- images: Array of DIRECT image URLs specifically showing THIS establishment (from Google Maps, TripAdvisor, Yelp, restaurant's own website, etc.). Only include images that are directly viewable URLs (ending in .jpg, .png, .webp, etc.). Include as many relevant images as you can find (could be 0, could be 10+). Do NOT include placeholder images or generic stock photos.
+- images: Array of PUBLICLY ACCESSIBLE image URLs. IMPORTANT: Do NOT use TripAdvisor, Google Maps, or similar sites as these block direct linking. Instead, try the establishment's own website, Instagram posts, food blogs, news articles about the place, or search for "[place name] restaurant image" and find URLs ending in .jpg/.png/.webp that are directly accessible. If you cannot find publicly accessible images, use an empty array []. Quality over quantity - only include images that will actually load.
 
 Respond with a JSON object with a "stops" array containing ${numberOfStops} stops. Format:
 {
@@ -197,7 +197,7 @@ Provide a JSON object with these exact fields:
 - address: The actual complete street address (verified via web search)
 - phone: Phone number if available from search
 - website: Website URL if available from search
-- images: Array of DIRECT image URLs specifically showing THIS establishment (from Google Maps, TripAdvisor, Yelp, the place's website, etc.). Only include images that are directly viewable URLs (ending in .jpg, .png, .webp, etc.). Include as many relevant images as you can find. Do NOT include placeholder images or generic stock photos.
+- images: Array of PUBLICLY ACCESSIBLE image URLs. IMPORTANT: Do NOT use TripAdvisor, Google Maps, or similar sites as these block direct linking. Instead, try the establishment's own website, Instagram posts, food blogs, news articles, or search for "[place name] image" and find URLs ending in .jpg/.png/.webp that are directly accessible. If you cannot find publicly accessible images, use an empty array []. Quality over quantity - only include images that will actually load.
 
 Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, no extra text.`;
 
