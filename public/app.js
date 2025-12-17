@@ -242,7 +242,37 @@ function createStopTile(stop, index) {
     tile.className = 'tour-stop-tile';
     tile.dataset.index = index;
     
+    // Create image carousel HTML
+    let carouselHTML = '';
+    if (stop.images && stop.images.length > 0) {
+        carouselHTML = `
+            <div class="image-carousel">
+                <div class="carousel-images">
+                    ${stop.images.map((img, i) => `
+                        <img src="${img}" alt="${stop.name}" class="carousel-image ${i === 0 ? 'active' : ''}" loading="lazy" onerror="this.style.display='none'">
+                    `).join('')}
+                </div>
+                ${stop.images.length > 1 ? `
+                    <button class="carousel-btn prev" aria-label="Previous image">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="carousel-btn next" aria-label="Next image">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                    <div class="carousel-indicators">
+                        ${stop.images.map((_, i) => `<span class="indicator ${i === 0 ? 'active' : ''}" data-index="${i}"></span>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
     tile.innerHTML = `
+        ${carouselHTML}
         <div class="tile-header">
             <div class="stop-number">Stop ${index + 1}</div>
             <button class="refresh-btn" title="Get a different stop" aria-label="Refresh this stop">
@@ -268,6 +298,24 @@ function createStopTile(stop, index) {
                 </svg>
                 <span>${stop.address || tourData.location}</span>
             </div>
+            ${stop.phone ? `
+                <div class="detail-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    <span>${stop.phone}</span>
+                </div>
+            ` : ''}
+            ${stop.website ? `
+                <div class="detail-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                    <a href="${stop.website}" target="_blank" rel="noopener noreferrer">Visit Website</a>
+                </div>
+            ` : ''}
         </div>
     `;
     
@@ -275,7 +323,52 @@ function createStopTile(stop, index) {
     const refreshBtn = tile.querySelector('.refresh-btn');
     refreshBtn.addEventListener('click', () => refreshStop(index));
     
+    // Add carousel functionality if there are multiple images
+    if (stop.images && stop.images.length > 1) {
+        setupCarousel(tile);
+    }
+    
     return tile;
+}
+
+// Setup carousel functionality
+function setupCarousel(tile) {
+    const images = tile.querySelectorAll('.carousel-image');
+    const indicators = tile.querySelectorAll('.indicator');
+    const prevBtn = tile.querySelector('.carousel-btn.prev');
+    const nextBtn = tile.querySelector('.carousel-btn.next');
+    let currentIndex = 0;
+    
+    function showImage(index) {
+        images.forEach((img, i) => {
+            img.classList.toggle('active', i === index);
+        });
+        indicators.forEach((ind, i) => {
+            ind.classList.toggle('active', i === index);
+        });
+        currentIndex = index;
+    }
+    
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newIndex = (currentIndex - 1 + images.length) % images.length;
+            showImage(newIndex);
+        });
+        
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newIndex = (currentIndex + 1) % images.length;
+            showImage(newIndex);
+        });
+    }
+    
+    indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showImage(index);
+        });
+    });
 }
 
 // Refresh a single tour stop

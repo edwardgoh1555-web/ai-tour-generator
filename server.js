@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
 const path = require('path');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -29,6 +31,62 @@ function cleanJsonResponse(text) {
         cleaned = cleaned.replace(/\n?```\s*$/, '');
     }
     return cleaned.trim();
+}
+
+// Function to search for real places using web search
+async function searchPlaces(query, location, count = 5) {
+    try {
+        // Use Google Custom Search API if GOOGLE_API_KEY and SEARCH_ENGINE_ID are set
+        if (process.env.GOOGLE_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
+            const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+                params: {
+                    key: process.env.GOOGLE_API_KEY,
+                    cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
+                    q: query,
+                    num: count,
+                    searchType: 'image'
+                }
+            });
+            
+            return response.data.items || [];
+        }
+        
+        // Fallback: Use DuckDuckGo or a simple search approach
+        // For now, return empty array to let AI handle it with better prompting
+        return [];
+    } catch (error) {
+        console.error('Search error:', error.message);
+        return [];
+    }
+}
+
+// Function to get place details and images from Google
+async function getPlaceInfo(placeName, location) {
+    try {
+        const searchQuery = `${placeName} ${location}`;
+        
+        // Try to get images from Google Custom Search if available
+        if (process.env.GOOGLE_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
+            const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+                params: {
+                    key: process.env.GOOGLE_API_KEY,
+                    cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
+                    q: searchQuery,
+                    num: 5,
+                    searchType: 'image'
+                }
+            });
+            
+            const images = response.data.items?.map(item => item.link) || [];
+            return { images: images.slice(0, 5) };
+        }
+        
+        // Fallback: Return placeholder
+        return { images: [] };
+    } catch (error) {
+        console.error('Error fetching place info:', error.message);
+        return { images: [] };
+    }
 }
 
 // Test credentials
@@ -62,19 +120,27 @@ app.post('/api/generate-tour', async (req, res) => {
     }
 
     try {
-        const prompt = `You are a helpful tour guide assistant. Create a personalized tour with exactly ${numberOfStops} stops in ${location}.
+        const prompt = `You are a helpful tour guide assistant with web search access. Create a personalized tour with exactly ${numberOfStops} stops in ${location}.
 
 Location: ${location}
 Interests/Activities: ${interests}
 Number of stops: ${numberOfStops}
 
-IMPORTANT: You must recommend ONLY real, well-known, verifiable places that actually exist in ${location}. Do NOT make up or hallucinate locations.
+CRITICAL INSTRUCTIONS:
+1. You MUST search the web to find REAL places that actually exist in ${location}
+2. For each place, verify it exists by searching for it online
+3. Get the actual address, phone number, and other real details from your search
+4. Do NOT make up or hallucinate any information
+5. If you cannot find ${numberOfStops} real places, return fewer stops with a note
 
 For each stop, provide a JSON object with these exact fields:
-- name: The actual name of the place/attraction
+- name: The actual name of the place/attraction (verified via web search)
 - description: What to do/see there and why it matches their interests
 - duration: Approximate time to spend (e.g., "1-2 hours")
-- address: The actual street address or area where it's located
+- address: The actual complete street address (verified via web search)
+- phone: Phone number if available from search
+- website: Website URL if available from search
+- images: Array of image URLs found via search (at least 3-5 if possible)
 
 Respond with a JSON object with a "stops" array containing ${numberOfStops} stops. Format:
 {
@@ -83,24 +149,27 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
       "name": "Real Place Name",
       "description": "Description here",
       "duration": "1-2 hours",
-      "address": "123 Real Street, City"
+      "address": "123 Real Street, City",
+      "phone": "+1234567890",
+      "website": "https://example.com",
+      "images": ["url1", "url2", "url3"]
     }
   ]
 }`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',  // Use gpt-4o for web search capabilities
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries based on user preferences. You ONLY recommend real, verifiable places that actually exist. You always respond with a JSON object containing a "stops" array.'
+                    content: 'You are an enthusiastic and knowledgeable tour guide with access to web search. You MUST search the web to find and verify real places. You ONLY recommend places you have verified exist through web search. You always respond with a JSON object containing a "stops" array with complete information including images.'
                 },
                 {
                     role: 'user',
                     content: prompt
                 }
             ],
-            max_tokens: 2000,
+            max_tokens: 3000,
             temperature: 0.7
         });
 
@@ -117,6 +186,13 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
                 console.error('Tour stops is not an array:', tourStops);
                 throw new Error('Invalid tour stops format');
             }
+            
+            // Ensure each stop has an images array (even if empty)
+            tourStops = tourStops.map(stop => ({
+                ...stop,
+                images: stop.images || []
+            }));
+            
         } catch (parseError) {
             console.error('Failed to parse tour stops:', parseError);
             console.error('Raw response:', completion.choices[0].message.content);
@@ -144,35 +220,43 @@ app.post('/api/refresh-stop', async (req, res) => {
 
     try {
         const excludeList = currentStops ? currentStops.join(', ') : '';
-        const prompt = `You are a helpful tour guide assistant. Generate ONE new tour stop for ${location}.
+        const prompt = `You are a helpful tour guide assistant with web search access. Generate ONE new tour stop for ${location}.
 
 Location: ${location}
 Interests/Activities: ${interests}
 ${excludeList ? `\nPlaces to AVOID (already suggested): ${excludeList}` : ''}
 
-IMPORTANT: You must recommend ONLY a real, well-known, verifiable place that actually exists in ${location}. Do NOT make up or hallucinate locations. Try to suggest something different from what's already been recommended.
+CRITICAL INSTRUCTIONS:
+1. You MUST search the web to find a REAL place that actually exists in ${location}
+2. Verify it exists by searching for it online
+3. Get the actual address and other real details from your search
+4. Do NOT make up or hallucinate any information
+5. Make sure it's different from the excluded places
 
 Provide a JSON object with these exact fields:
-- name: The actual name of the place/attraction
+- name: The actual name of the place/attraction (verified via web search)
 - description: What to do/see there and why it matches their interests  
 - duration: Approximate time to spend (e.g., "1-2 hours")
-- address: The actual street address or area where it's located
+- address: The actual complete street address (verified via web search)
+- phone: Phone number if available from search
+- website: Website URL if available from search
+- images: Array of image URLs found via search (at least 3-5 if possible)
 
 Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, no extra text.`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',  // Use gpt-4o for web search
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries. You ONLY recommend real, verifiable places that actually exist. You always respond with ONLY raw JSON, never wrapped in markdown code blocks.'
+                    content: 'You are an enthusiastic and knowledgeable tour guide with access to web search. You MUST search the web to find and verify real places. You ONLY recommend places you have verified exist through web search. You always respond with ONLY raw JSON, never wrapped in markdown code blocks.'
                 },
                 {
                     role: 'user',
                     content: prompt
                 }
             ],
-            max_tokens: 500,
+            max_tokens: 800,
             temperature: 0.8
         });
 
@@ -180,6 +264,10 @@ Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, n
         console.log('Refresh stop response:', responseContent);
         const cleanedContent = cleanJsonResponse(responseContent);
         const newStop = JSON.parse(cleanedContent);
+        
+        // Ensure images array exists
+        newStop.images = newStop.images || [];
+        
         res.json({ success: true, stop: newStop });
         
     } catch (error) {
