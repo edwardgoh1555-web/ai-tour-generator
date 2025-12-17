@@ -63,22 +63,24 @@ For each stop, provide a JSON object with these exact fields:
 - duration: Approximate time to spend (e.g., "1-2 hours")
 - address: The actual street address or area where it's located
 
-Respond ONLY with a valid JSON array of ${numberOfStops} stops. Example format:
-[
-  {
-    "name": "Real Place Name",
-    "description": "Description here",
-    "duration": "1-2 hours",
-    "address": "123 Real Street, City"
-  }
-]`;
+Respond with a JSON object with a "stops" array containing ${numberOfStops} stops. Format:
+{
+  "stops": [
+    {
+      "name": "Real Place Name",
+      "description": "Description here",
+      "duration": "1-2 hours",
+      "address": "123 Real Street, City"
+    }
+  ]
+}`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries based on user preferences. You ONLY recommend real, verifiable places that actually exist. You always respond with valid JSON arrays.'
+                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries based on user preferences. You ONLY recommend real, verifiable places that actually exist. You always respond with a JSON object containing a "stops" array.'
                 },
                 {
                     role: 'user',
@@ -86,19 +88,25 @@ Respond ONLY with a valid JSON array of ${numberOfStops} stops. Example format:
                 }
             ],
             max_tokens: 2000,
-            temperature: 0.7,
-            response_format: { type: "json_object" }
+            temperature: 0.7
         });
 
         let tourStops;
         try {
             const responseContent = completion.choices[0].message.content;
+            console.log('OpenAI Response:', responseContent);
             const parsed = JSON.parse(responseContent);
             // Handle if response is wrapped in an object with a 'stops' key or similar
             tourStops = Array.isArray(parsed) ? parsed : (parsed.stops || parsed.tour || Object.values(parsed)[0]);
+            
+            if (!Array.isArray(tourStops)) {
+                console.error('Tour stops is not an array:', tourStops);
+                throw new Error('Invalid tour stops format');
+            }
         } catch (parseError) {
             console.error('Failed to parse tour stops:', parseError);
-            return res.status(500).json({ error: 'Failed to parse tour data' });
+            console.error('Raw response:', completion.choices[0].message.content);
+            return res.status(500).json({ error: 'Failed to parse tour data', details: parseError.message });
         }
 
         res.json({ success: true, stops: tourStops, location, interests });
@@ -139,7 +147,7 @@ Provide a JSON object with these exact fields:
 Respond ONLY with a valid JSON object for one stop.`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
@@ -151,11 +159,12 @@ Respond ONLY with a valid JSON object for one stop.`;
                 }
             ],
             max_tokens: 500,
-            temperature: 0.8,
-            response_format: { type: "json_object" }
+            temperature: 0.8
         });
 
-        const newStop = JSON.parse(completion.choices[0].message.content);
+        const responseContent = completion.choices[0].message.content;
+        console.log('Refresh stop response:', responseContent);
+        const newStop = JSON.parse(responseContent);
         res.json({ success: true, stop: newStop });
         
     } catch (error) {
