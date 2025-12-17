@@ -82,10 +82,13 @@ Number of stops: ${numberOfStops}
 
 CRITICAL INSTRUCTIONS:
 1. You MUST search the web to find REAL places that actually exist in ${location}
-2. For each place, verify it exists by searching for it online
-3. Get the actual address, phone number, and other real details from your search
-4. Do NOT make up or hallucinate any information
-5. If you cannot find ${numberOfStops} real places, return fewer stops with a note
+2. For each place, verify BOTH that it exists AND what type of cuisine/activity it actually offers
+3. ONLY include places that ACTUALLY match the interests "${interests}"
+4. Do NOT include a place if it doesn't match - for example, don't include a Spanish tapas bar on an Asian food tour
+5. Get the actual address, phone number, website, and verify what they actually serve/offer from your search
+6. For images: Try to find real image URLs, but if not available, use empty array []
+7. Do NOT make up or hallucinate any information about what a place offers
+8. If you cannot find ${numberOfStops} real matching places, return fewer stops
 
 For each stop, provide a JSON object with these exact fields:
 - name: The actual name of the place/attraction (verified via web search)

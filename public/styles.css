@@ -814,6 +814,57 @@ h1 {
     }
 }
 
+/* Button styles */
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    box-shadow: 0 5px 20px rgba(108, 117, 125, 0.3);
+}
+
+@media (min-width: 768px) {
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(108, 117, 125, 0.4);
+    }
+}
+
+#start-tour-btn {
+    margin-bottom: 10px;
+}
+
+/* Map Screen */
+.map-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+#map-container {
+    width: 100%;
+    height: 70vh;
+    height: 70dvh;
+}
+
+@media (min-width: 768px) {
+    #map-container {
+        height: 75vh;
+    }
+}
+
+#back-to-tour-btn {
+    margin: 20px;
+    width: calc(100% - 40px);
+}
+
+@media (min-width: 768px) {
+    #back-to-tour-btn {
+        margin: 25px;
+        width: calc(100% - 50px);
+    }
+}
+
 /* Safe area insets for notched phones */
 @supports (padding: max(0px)) {
     body {

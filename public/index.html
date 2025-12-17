@@ -111,11 +111,23 @@
             <div class="card results-card">
                 <div id="tour-summary" class="tour-summary"></div>
                 <div id="tour-content" class="tour-tiles"></div>
-                <button id="new-tour-btn" class="btn btn-primary"> New Tour</button>
+                <button id="start-tour-btn" class="btn btn-primary"> Start Tour</button>
+                <button id="new-tour-btn" class="btn btn-secondary"> New Tour</button>
+            </div>
+        </div>
+
+        <!-- Map Screen -->
+        <div id="map-screen" class="screen">
+            <h1> Tour Map</h1>
+            <div class="card map-card">
+                <div id="map-container"></div>
+                <button id="back-to-tour-btn" class="btn btn-secondary"> Back to Tour Details</button>
             </div>
         </div>
     </div>
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

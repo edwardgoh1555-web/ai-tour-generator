@@ -6,6 +6,9 @@ let tourData = {
 };
 
 let detectedLocation = null;
+let currentPosition = null; // Store GPS coordinates
+let generatedStops = []; // Store generated tour stops for map
+let map = null; // Leaflet map instance
 
 // Screen management
 function showScreen(screenId) {
@@ -51,6 +54,9 @@ async function getUserLocation() {
         });
         
         const { latitude, longitude } = position.coords;
+        
+        // Store current position for map
+        currentPosition = { lat: latitude, lng: longitude };
         
         // Reverse geocode using OpenStreetMap Nominatim (free, no API key)
         locationBtn.innerHTML = ' Finding address...';
@@ -216,6 +222,9 @@ document.getElementById('stops-form').addEventListener('submit', async (e) => {
 function displayTour(data) {
     const summaryDiv = document.getElementById('tour-summary');
     const contentDiv = document.getElementById('tour-content');
+    
+    // Store stops for map
+    generatedStops = data.stops;
     
     summaryDiv.innerHTML = `
         <h3> Tour Details</h3>
@@ -447,3 +456,136 @@ document.getElementById('new-tour-btn').addEventListener('click', () => {
     // Go back to location screen (already logged in)
     showScreen('location-screen');
 });
+
+// Start tour button - show map
+document.getElementById('start-tour-btn').addEventListener('click', () => {
+    initializeMap();
+    showScreen('map-screen');
+});
+
+// Back to tour details button
+document.getElementById('back-to-tour-btn').addEventListener('click', () => {
+    showScreen('results-screen');
+});
+
+// Initialize and display map with tour stops
+async function initializeMap() {
+    const mapContainer = document.getElementById('map-container');
+    
+    // Get current location if not already available
+    if (!currentPosition) {
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            });
+            currentPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+        } catch (error) {
+            console.error('Could not get current location:', error);
+            // Default to first stop or city center
+            if (generatedStops.length > 0) {
+                // Try to geocode the first stop's address
+                currentPosition = await geocodeAddress(generatedStops[0].address);
+            }
+        }
+    }
+    
+    // Create map if it doesn't exist
+    if (!map) {
+        map = L.map('map-container').setView([currentPosition.lat, currentPosition.lng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+    } else {
+        // Clear existing markers
+        map.eachLayer((layer) => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+        map.setView([currentPosition.lat, currentPosition.lng], 13);
+    }
+    
+    // Add current location marker
+    const currentLocationIcon = L.divIcon({
+        html: '<div style=\"background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);\"></div>',
+        iconSize: [20, 20],
+        className: ''
+    });
+    
+    L.marker([currentPosition.lat, currentPosition.lng], { icon: currentLocationIcon })
+        .addTo(map)
+        .bindPopup('<b>📍 Your Location</b>')
+        .openPopup();
+    
+    // Add markers for each tour stop
+    for (let i = 0; i < generatedStops.length; i++) {
+        const stop = generatedStops[i];
+        const coords = await geocodeAddress(stop.address);
+        
+        if (coords) {
+            const stopIcon = L.divIcon({
+                html: `<div style=\"background: #764ba2; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);\">${i + 1}</div>`,
+                iconSize: [30, 30],
+                className: ''
+            });
+            
+            L.marker([coords.lat, coords.lng], { icon: stopIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin: 0 0 8px 0; color: #333;">Stop ${i + 1}: ${stop.name}</h3>
+                        <p style="margin: 4px 0; color: #666; font-size: 0.9em;">${stop.description.substring(0, 100)}...</p>
+                        <p style="margin: 4px 0; color: #667eea; font-size: 0.85em;"><b>⏱️ ${stop.duration}</b></p>
+                    </div>
+                `);
+        }
+    }
+    
+    // Fit map to show all markers
+    if (generatedStops.length > 0) {
+        const bounds = L.latLngBounds([currentPosition.lat, currentPosition.lng]);
+        for (const stop of generatedStops) {
+            const coords = await geocodeAddress(stop.address);
+            if (coords) {
+                bounds.extend([coords.lat, coords.lng]);
+            }
+        }
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
+
+// Geocode address to coordinates
+async function geocodeAddress(address) {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+            {
+                headers: {
+                    'Accept-Language': 'en'
+                }
+            }
+        );
+        
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+    }
+    
+    return null;
+}
