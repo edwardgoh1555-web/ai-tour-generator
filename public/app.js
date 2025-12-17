@@ -10,6 +10,57 @@ let currentPosition = null; // Store GPS coordinates
 let generatedStops = []; // Store generated tour stops for map
 let map = null; // Leaflet map instance
 
+// Global image error handler
+function handleImageError(imgElement) {
+    const carousel = imgElement.parentElement;
+    const stopTile = carousel.closest('.stop-tile');
+    
+    // Remove the failed image
+    imgElement.remove();
+    
+    // Get remaining images
+    const remainingImages = carousel.querySelectorAll('.carousel-image');
+    
+    // If no images left, hide the carousel container
+    if (remainingImages.length === 0) {
+        const carouselContainer = carousel.parentElement;
+        if (carouselContainer) {
+            carouselContainer.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Reindex remaining images - ensure at least one is active
+    let hasActive = false;
+    remainingImages.forEach((img, index) => {
+        img.classList.remove('active');
+        if (index === 0) {
+            img.classList.add('active');
+            hasActive = true;
+        }
+    });
+    
+    // Update indicators if they exist
+    const indicatorsContainer = stopTile?.querySelector('.carousel-indicators');
+    if (indicatorsContainer && remainingImages.length > 1) {
+        indicatorsContainer.innerHTML = '';
+        remainingImages.forEach((_, index) => {
+            const indicator = document.createElement('span');
+            indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+            indicatorsContainer.appendChild(indicator);
+        });
+    } else if (indicatorsContainer) {
+        // Hide indicators if only one image left
+        indicatorsContainer.style.display = 'none';
+    }
+    
+    // Hide navigation buttons if only one image left
+    if (remainingImages.length === 1) {
+        const navButtons = stopTile?.querySelectorAll('.carousel-btn');
+        navButtons?.forEach(btn => btn.style.display = 'none');
+    }
+}
+
 // Screen management
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
@@ -251,17 +302,20 @@ function createStopTile(stop, index) {
     tile.className = 'tour-stop-tile';
     tile.dataset.index = index;
     
-    // Create image carousel HTML
+    // Filter out any invalid image URLs and ensure we have valid images
+    const validImages = (stop.images || []).filter(img => img && img.trim() !== '');
+    
+    // Create image carousel HTML only if there are images
     let carouselHTML = '';
-    if (stop.images && stop.images.length > 0) {
+    if (validImages.length > 0) {
         carouselHTML = `
             <div class="image-carousel">
                 <div class="carousel-images">
-                    ${stop.images.map((img, i) => `
-                        <img src="${img}" alt="${stop.name}" class="carousel-image ${i === 0 ? 'active' : ''}" loading="lazy" onerror="this.style.display='none'">
+                    ${validImages.map((img, i) => `
+                        <img src="${img}" alt="${stop.name}" class="carousel-image ${i === 0 ? 'active' : ''}" loading="lazy" onerror="handleImageError(this)">
                     `).join('')}
                 </div>
-                ${stop.images.length > 1 ? `
+                ${validImages.length > 1 ? `
                     <button class="carousel-btn prev" aria-label="Previous image">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="15 18 9 12 15 6"></polyline>
@@ -273,7 +327,7 @@ function createStopTile(stop, index) {
                         </svg>
                     </button>
                     <div class="carousel-indicators">
-                        ${stop.images.map((_, i) => `<span class="indicator ${i === 0 ? 'active' : ''}" data-index="${i}"></span>`).join('')}
+                        ${validImages.map((_, i) => `<span class="indicator ${i === 0 ? 'active' : ''}" data-index="${i}"></span>`).join('')}
                     </div>
                 ` : ''}
             </div>
