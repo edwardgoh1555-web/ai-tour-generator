@@ -200,7 +200,7 @@ document.getElementById('stops-form').addEventListener('submit', async (e) => {
         const data = await response.json();
         
         if (data.success) {
-            displayTour(data.tour);
+            displayTour(data);
         } else {
             alert('Error generating tour: ' + (data.error || 'Unknown error'));
             showScreen('stops-screen');
@@ -212,8 +212,8 @@ document.getElementById('stops-form').addEventListener('submit', async (e) => {
     }
 });
 
-// Display the generated tour
-function displayTour(tourContent) {
+// Display the generated tour with individual tiles
+function displayTour(data) {
     const summaryDiv = document.getElementById('tour-summary');
     const contentDiv = document.getElementById('tour-content');
     
@@ -224,9 +224,105 @@ function displayTour(tourContent) {
         <p><strong>Number of Stops:</strong> ${tourData.numberOfStops}</p>
     `;
     
-    contentDiv.textContent = tourContent;
+    // Create individual tiles for each stop
+    contentDiv.innerHTML = '';
+    contentDiv.className = 'tour-tiles';
+    
+    data.stops.forEach((stop, index) => {
+        const tile = createStopTile(stop, index);
+        contentDiv.appendChild(tile);
+    });
     
     showScreen('results-screen');
+}
+
+// Create a tile for a single tour stop
+function createStopTile(stop, index) {
+    const tile = document.createElement('div');
+    tile.className = 'tour-stop-tile';
+    tile.dataset.index = index;
+    
+    tile.innerHTML = `
+        <div class="tile-header">
+            <div class="stop-number">Stop ${index + 1}</div>
+            <button class="refresh-btn" title="Get a different stop" aria-label="Refresh this stop">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+            </button>
+        </div>
+        <h3 class="stop-name">${stop.name}</h3>
+        <p class="stop-description">${stop.description}</p>
+        <div class="stop-details">
+            <div class="detail-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>${stop.duration || 'Flexible'}</span>
+            </div>
+            <div class="detail-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <span>${stop.address || tourData.location}</span>
+            </div>
+        </div>
+    `;
+    
+    // Add refresh button event listener
+    const refreshBtn = tile.querySelector('.refresh-btn');
+    refreshBtn.addEventListener('click', () => refreshStop(index));
+    
+    return tile;
+}
+
+// Refresh a single tour stop
+async function refreshStop(index) {
+    const tile = document.querySelector(`[data-index="${index}"]`);
+    const refreshBtn = tile.querySelector('.refresh-btn');
+    
+    // Add loading state
+    refreshBtn.classList.add('loading');
+    refreshBtn.disabled = true;
+    
+    // Get current stop names to avoid duplicates
+    const allTiles = document.querySelectorAll('.tour-stop-tile');
+    const currentStops = Array.from(allTiles)
+        .filter((_, i) => i !== index)
+        .map(t => t.querySelector('.stop-name').textContent);
+    
+    try {
+        const response = await fetch('/api/refresh-stop', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                location: tourData.location,
+                interests: tourData.interests,
+                currentStops
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Replace the tile with the new stop
+            const newTile = createStopTile(data.stop, index);
+            tile.parentNode.replaceChild(newTile, tile);
+        } else {
+            alert('Error refreshing stop: ' + (data.error || 'Unknown error'));
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to refresh stop. Please try again.');
+        refreshBtn.classList.remove('loading');
+        refreshBtn.disabled = false;
+    }
 }
 
 // New tour button
