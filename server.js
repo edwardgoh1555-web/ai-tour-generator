@@ -22,12 +22,24 @@ const openai = new OpenAI({
 function cleanJsonResponse(text) {
     // Remove markdown code blocks if present
     let cleaned = text.trim();
-    if (cleaned.startsWith('```')) {
-        // Remove opening ```json or ```
-        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '');
-        // Remove closing ```
-        cleaned = cleaned.replace(/\n?```\s*$/, '');
+    
+    // If there's a code block, extract it
+    if (cleaned.includes('```')) {
+        const match = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+        if (match && match[1]) {
+            cleaned = match[1].trim();
+        }
     }
+    
+    // Try to extract JSON object from the text
+    // Look for the first { and last }
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+    
     return cleaned.trim();
 }
 
@@ -104,7 +116,7 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide with access to web search. You MUST search the web to find and verify real places. You ONLY recommend places you have verified exist through web search. You always respond with a JSON object containing a "stops" array with complete information including images.'
+                    content: 'You are a tour guide API that returns ONLY valid JSON. You have web search access. Search the web to find and verify real places. Respond with ONLY the JSON object, no explanations, no markdown, no extra text before or after.'
                 },
                 {
                     role: 'user',
@@ -191,7 +203,7 @@ Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, n
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide with access to web search. You MUST search the web to find and verify real places. You ONLY recommend places you have verified exist through web search. You always respond with ONLY raw JSON, never wrapped in markdown code blocks.'
+                    content: 'You are a tour guide API that returns ONLY valid JSON. You have web search access. Search the web to find and verify real places. Respond with ONLY the JSON object, no explanations, no markdown, no extra text.'
                 },
                 {
                     role: 'user',
