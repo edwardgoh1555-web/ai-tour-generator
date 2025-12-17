@@ -3,8 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const OpenAI = require('openai');
 const path = require('path');
-const axios = require('axios');
-const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -31,62 +29,6 @@ function cleanJsonResponse(text) {
         cleaned = cleaned.replace(/\n?```\s*$/, '');
     }
     return cleaned.trim();
-}
-
-// Function to search for real places using web search
-async function searchPlaces(query, location, count = 5) {
-    try {
-        // Use Google Custom Search API if GOOGLE_API_KEY and SEARCH_ENGINE_ID are set
-        if (process.env.GOOGLE_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
-            const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-                params: {
-                    key: process.env.GOOGLE_API_KEY,
-                    cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
-                    q: query,
-                    num: count,
-                    searchType: 'image'
-                }
-            });
-            
-            return response.data.items || [];
-        }
-        
-        // Fallback: Use DuckDuckGo or a simple search approach
-        // For now, return empty array to let AI handle it with better prompting
-        return [];
-    } catch (error) {
-        console.error('Search error:', error.message);
-        return [];
-    }
-}
-
-// Function to get place details and images from Google
-async function getPlaceInfo(placeName, location) {
-    try {
-        const searchQuery = `${placeName} ${location}`;
-        
-        // Try to get images from Google Custom Search if available
-        if (process.env.GOOGLE_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
-            const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-                params: {
-                    key: process.env.GOOGLE_API_KEY,
-                    cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
-                    q: searchQuery,
-                    num: 5,
-                    searchType: 'image'
-                }
-            });
-            
-            const images = response.data.items?.map(item => item.link) || [];
-            return { images: images.slice(0, 5) };
-        }
-        
-        // Fallback: Return placeholder
-        return { images: [] };
-    } catch (error) {
-        console.error('Error fetching place info:', error.message);
-        return { images: [] };
-    }
 }
 
 // Test credentials
