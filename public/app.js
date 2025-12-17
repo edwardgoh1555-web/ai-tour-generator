@@ -12,6 +12,7 @@ let map = null; // Leaflet map instance
 
 // Global image error handler
 function handleImageError(imgElement) {
+    console.log('Image failed to load:', imgElement.src);
     const carousel = imgElement.parentElement;
     const stopTile = carousel.closest('.stop-tile');
     
@@ -304,6 +305,13 @@ function createStopTile(stop, index) {
     
     // Filter out any invalid image URLs and ensure we have valid images
     const validImages = (stop.images || []).filter(img => img && img.trim() !== '');
+    
+    // Debug logging
+    console.log(`Stop ${index + 1} - ${stop.name}:`, {
+        totalImages: stop.images?.length || 0,
+        validImages: validImages.length,
+        images: validImages
+    });
     
     // Create image carousel HTML only if there are images
     let carouselHTML = '';
