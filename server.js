@@ -18,6 +18,19 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// Helper function to clean JSON response from markdown code blocks
+function cleanJsonResponse(text) {
+    // Remove markdown code blocks if present
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+        // Remove opening ```json or ```
+        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '');
+        // Remove closing ```
+        cleaned = cleaned.replace(/\n?```\s*$/, '');
+    }
+    return cleaned.trim();
+}
+
 // Test credentials
 const TEST_USER = {
     username: 'demo',
@@ -95,7 +108,8 @@ Respond with a JSON object with a "stops" array containing ${numberOfStops} stop
         try {
             const responseContent = completion.choices[0].message.content;
             console.log('OpenAI Response:', responseContent);
-            const parsed = JSON.parse(responseContent);
+            const cleanedContent = cleanJsonResponse(responseContent);
+            const parsed = JSON.parse(cleanedContent);
             // Handle if response is wrapped in an object with a 'stops' key or similar
             tourStops = Array.isArray(parsed) ? parsed : (parsed.stops || parsed.tour || Object.values(parsed)[0]);
             
@@ -144,14 +158,14 @@ Provide a JSON object with these exact fields:
 - duration: Approximate time to spend (e.g., "1-2 hours")
 - address: The actual street address or area where it's located
 
-Respond ONLY with a valid JSON object for one stop.`;
+Respond ONLY with the raw JSON object, no markdown formatting, no code blocks, no extra text.`;
 
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries. You ONLY recommend real, verifiable places that actually exist. You always respond with valid JSON.'
+                    content: 'You are an enthusiastic and knowledgeable tour guide who creates personalized tour itineraries. You ONLY recommend real, verifiable places that actually exist. You always respond with ONLY raw JSON, never wrapped in markdown code blocks.'
                 },
                 {
                     role: 'user',
@@ -164,7 +178,8 @@ Respond ONLY with a valid JSON object for one stop.`;
 
         const responseContent = completion.choices[0].message.content;
         console.log('Refresh stop response:', responseContent);
-        const newStop = JSON.parse(responseContent);
+        const cleanedContent = cleanJsonResponse(responseContent);
+        const newStop = JSON.parse(cleanedContent);
         res.json({ success: true, stop: newStop });
         
     } catch (error) {
